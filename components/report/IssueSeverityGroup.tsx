@@ -44,7 +44,7 @@ const SEVERITY_META: Record<IssueSeverity, {
 interface IssueSeverityGroupProps {
   severity: IssueSeverity;
   issues: Issue[];
-  onEvidenceClick: (issue: Issue) => void;
+  onEvidenceClick?: (issue: Issue) => void;
 }
 
 export function IssueSeverityGroup({ severity, issues, onEvidenceClick }: IssueSeverityGroupProps) {

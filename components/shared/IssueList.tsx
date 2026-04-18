@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import type { Issue, IssueSeverity, IssueCategory } from '@/lib/types';
 import { IssueCard } from './IssueCard';
-import { EvidenceDrawer } from './EvidenceDrawer';
 import { FiltersBar } from './FiltersBar';
 import { EmptyState } from './EmptyState';
 import { IssueSeverityGroup } from '@/components/report/IssueSeverityGroup';
@@ -13,12 +12,12 @@ interface IssueListProps {
   issues: Issue[];
   showFilters?: boolean;
   grouped?: boolean;
+  onEvidenceClick?: (issue: Issue) => void;
 }
 
 const SEVERITY_ORDER: IssueSeverity[] = ['critical', 'warning', 'info'];
 
-export function IssueList({ issues, showFilters = true, grouped = false }: IssueListProps) {
-  const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
+export function IssueList({ issues, showFilters = true, grouped = false, onEvidenceClick }: IssueListProps) {
   const [severityFilter, setSeverityFilter] = useState<IssueSeverity | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<IssueCategory | 'all'>('all');
 
@@ -60,7 +59,7 @@ export function IssueList({ issues, showFilters = true, grouped = false }: Issue
                   key={sev}
                   severity={sev}
                   issues={group}
-                  onEvidenceClick={setActiveIssue}
+                  onEvidenceClick={onEvidenceClick}
                 />
               );
             })}
@@ -71,19 +70,12 @@ export function IssueList({ issues, showFilters = true, grouped = false }: Issue
               <IssueCard
                 key={issue.id}
                 issue={issue}
-                onEvidenceClick={setActiveIssue}
+                onEvidenceClick={onEvidenceClick}
               />
             ))}
           </div>
         )}
       </div>
-
-      {activeIssue && (
-        <EvidenceDrawer
-          issue={activeIssue}
-          onClose={() => setActiveIssue(null)}
-        />
-      )}
     </>
   );
 }
