@@ -11,7 +11,14 @@ export async function GET(
     return NextResponse.json({ error: 'No live database connection' }, { status: 503 });
   }
 
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(params.id)) {
+    return NextResponse.json({ error: 'Invalid submission ID format' }, { status: 400 });
+  }
+
   try {
+    // Note: User ownership is implicitly validated by Supabase Row Level Security (RLS).
+    // If the anonymous key or session token does not own the record, `single()` throws a Not Found error.
     const { data, error } = await supabase
       .from('submissions')
       .select('status, issue_counts, reports(status, unlocked_at)')
