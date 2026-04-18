@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/server';
+import { createClientServer } from '@/lib/supabase/server';
 import { mapProject, type DbProject } from '@/lib/supabase/mappers';
 import { MOCK_PROJECTS } from '@/lib/mock-data';
 import type { Project } from '@/lib/types';
@@ -15,11 +15,18 @@ export interface ProjectViewModel {
 
 // ---------------------------------------------------------------------------
 // List all projects for the authenticated user.
-// Falls back to mock data when supabase client is unavailable (LOCAL_DEV_MODE).
+// Returns empty/fallback if no user is found.
 // ---------------------------------------------------------------------------
 export async function getProjectsViewModel(): Promise<ProjectsViewModel> {
+  const supabase = createClientServer();
   if (!supabase) {
     return { projects: MOCK_PROJECTS, isLive: false };
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    // Gracefully handle unauthenticated live edge cases (e.g., waiting for login flow)
+    return { projects: [], isLive: true };
   }
 
   try {
@@ -80,11 +87,17 @@ export async function getProjectsViewModel(): Promise<ProjectsViewModel> {
 // Single project detail loader.
 // ---------------------------------------------------------------------------
 export async function getProjectViewModel(id: string): Promise<ProjectViewModel> {
+  const supabase = createClientServer();
   if (!supabase) {
     return {
       project: MOCK_PROJECTS.find((p) => p.id === id) ?? MOCK_PROJECTS[0],
       isLive: false,
     };
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { project: null, isLive: true };
   }
 
   try {

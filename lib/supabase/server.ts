@@ -1,17 +1,43 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('[supabase] SUPABASE_URL or SUPABASE_ANON_KEY not set — live queries will be unavailable.');
-}
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 /**
- * Server-only Supabase client.
- * Uses service-level env vars (no NEXT_PUBLIC_ prefix).
- * Must only be imported in Server Components, API routes, or server actions.
+ * Creates an authenticated Supabase client for Server Components, Server Actions, and Route Handlers.
+ * Injects session context safely using Next.js cookies.
+ *
+ * @returns SupabaseClient or null if live vars are missing (for local offline dev)
  */
-export const supabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+export function createClientServer() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    return null;
+  }
+
+  const cookieStore = cookies();
+
+  return createServerClient(url, key, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value, ...options });
+        } catch (error) {
+          // The `set` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing user sessions.
+        }
+      },
+      remove(name: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value: '', ...options });
+        } catch (error) {
+          // The `remove` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing user sessions.
+        }
+      },
+    },
+  });
+}

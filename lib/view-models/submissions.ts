@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabase/server';
+import { createClientServer } from '@/lib/supabase/server';
 import { mapSubmission, type DbSubmission } from '@/lib/supabase/mappers';
 import { MOCK_SUBMISSIONS, MOCK_PROJECTS } from '@/lib/mock-data';
 import type { Submission } from '@/lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface SubmissionsViewModel {
   submissions: (Submission & { projectName: string })[];
@@ -17,9 +18,7 @@ export interface SubmissionViewModel {
 // ---------------------------------------------------------------------------
 // Shared helper: fetch submissions with project name joined.
 // ---------------------------------------------------------------------------
-async function fetchSubmissions(filter?: { projectId?: string; id?: string }) {
-  if (!supabase) return null;
-
+async function fetchSubmissions(supabase: SupabaseClient, filter?: { projectId?: string; id?: string }) {
   let query = supabase
     .from('submissions')
     .select(`
@@ -46,6 +45,7 @@ async function fetchSubmissions(filter?: { projectId?: string; id?: string }) {
 // Excludes processing-only demo submissions.
 // ---------------------------------------------------------------------------
 export async function getSubmissionsViewModel(): Promise<SubmissionsViewModel> {
+  const supabase = createClientServer();
   if (!supabase) {
     const submissions = MOCK_SUBMISSIONS
       .filter((s) => s.id !== 'sub-processing')
@@ -56,8 +56,11 @@ export async function getSubmissionsViewModel(): Promise<SubmissionsViewModel> {
     return { submissions, isLive: false };
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { submissions: [], isLive: true };
+
   try {
-    const { data, error } = await fetchSubmissions() ?? { data: null, error: 'no client' };
+    const { data, error } = await fetchSubmissions(supabase) ?? { data: null, error: 'no client' };
 
     if (error || !data) {
       console.error('[submissions] Supabase error, falling back to mock:', (error as any)?.message ?? error);
@@ -108,12 +111,16 @@ export async function getSubmissionsViewModel(): Promise<SubmissionsViewModel> {
 // Falls back to mock 'sub-processing' for the demo flow.
 // ---------------------------------------------------------------------------
 export async function getSubmissionViewModel(id: string): Promise<SubmissionViewModel> {
+  const supabase = createClientServer();
   if (!supabase) {
     const base = MOCK_SUBMISSIONS.find((s) => s.id === id)
       ?? MOCK_SUBMISSIONS.find((s) => s.id === 'sub-processing')!;
     const projectName = MOCK_PROJECTS.find((p) => p.id === base.projectId)?.name ?? 'Unknown Project';
     return { submission: base, projectName, isLive: false };
   }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { submission: null, projectName: 'Unknown', isLive: true };
 
   try {
     const { data, error } = await supabase
@@ -196,6 +203,7 @@ export async function getSubmissionViewModel(id: string): Promise<SubmissionView
 // Project-scoped submission list (used by project detail page).
 // ---------------------------------------------------------------------------
 export async function getProjectSubmissionsViewModel(projectId: string): Promise<SubmissionsViewModel> {
+  const supabase = createClientServer();
   if (!supabase) {
     const submissions = MOCK_SUBMISSIONS
       .filter((s) => s.projectId === projectId)
@@ -206,8 +214,11 @@ export async function getProjectSubmissionsViewModel(projectId: string): Promise
     return { submissions, isLive: false };
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { submissions: [], isLive: true };
+
   try {
-    const { data, error } = await fetchSubmissions({ projectId }) ?? { data: null, error: 'no client' };
+    const { data, error } = await fetchSubmissions(supabase, { projectId }) ?? { data: null, error: 'no client' };
 
     if (error || !data) {
       console.error('[project-submissions] Supabase error, falling back to mock:', (error as any)?.message ?? error);

@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/server';
+import { createClientServer } from '@/lib/supabase/server';
 import { mapProject, mapSubmission, type DbProject, type DbSubmission } from '@/lib/supabase/mappers';
 import { MOCK_PROJECTS, MOCK_SUBMISSIONS } from '@/lib/mock-data';
 import { DEMO } from '@/lib/demo';
@@ -55,11 +55,26 @@ function getMockDashboard(): DashboardViewModel {
   };
 }
 
+function getEmptyLiveDashboard(): DashboardViewModel {
+  return {
+    stats: { activeProjects: 0, submissionsThisMonth: 0, criticalIssuesFound: 0, reportsUnlocked: 0 },
+    recentSubmissions: [],
+    projects: [],
+    demoAlert: null,
+    usage: { submissionsUsed: 0, submissionsTotal: 10, unlocksUsed: 0, unlocksTotal: 10 },
+    isLive: true,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Dashboard aggregate — projects + recent submissions + usage counters.
 // ---------------------------------------------------------------------------
 export async function getDashboardViewModel(): Promise<DashboardViewModel> {
+  const supabase = createClientServer();
   if (!supabase) return getMockDashboard();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return getEmptyLiveDashboard();
 
   try {
     // 1. Fetch projects with submission aggregates

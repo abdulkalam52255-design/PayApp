@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/server';
+import { createClientServer } from '@/lib/supabase/server';
 import { type DbSubmission } from '@/lib/supabase/mappers';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const supabase = createClientServer();
   if (!supabase) {
     // If no Supabase connection, return a 404 or indicate it's not live
     return NextResponse.json({ error: 'No live database connection' }, { status: 503 });
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
