@@ -1,13 +1,12 @@
-'use client';
-
 import Link from 'next/link';
 import { Plus, FolderKanban } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { MOCK_PROJECTS } from '@/lib/mock-data';
+import { getProjectsViewModel } from '@/lib/view-models/projects';
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const vm = await getProjectsViewModel();
   return (
     <AppShell>
       <div className="px-4 py-6 sm:px-6 lg:px-8">
@@ -15,7 +14,7 @@ export default function ProjectsPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Projects</h1>
             <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-              {MOCK_PROJECTS.length} active project{MOCK_PROJECTS.length !== 1 ? 's' : ''} in your workspace
+              {vm.projects.length} active project{vm.projects.length !== 1 ? 's' : ''} in your workspace
             </p>
           </div>
           <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
@@ -26,7 +25,7 @@ export default function ProjectsPage() {
         </div>
 
         <div className="mt-6">
-          {MOCK_PROJECTS.length === 0 ? (
+          {vm.projects.length === 0 ? (
             <EmptyState
               icon={FolderKanban}
               title="No projects yet"
@@ -40,7 +39,7 @@ export default function ProjectsPage() {
             />
           ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {MOCK_PROJECTS.map((project) => (
+              {vm.projects.map((project) => (
                 <ProjectCard key={project.id} project={project} />
               ))}
             </div>

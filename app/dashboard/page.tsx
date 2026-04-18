@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { FolderKanban, FileText, OctagonAlert as AlertOctagon, Clock as Unlock, Plus, ArrowRight, TrendingUp } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -7,8 +5,7 @@ import { StatsCard } from '@/components/shared/StatsCard';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { MOCK_PROJECTS, MOCK_SUBMISSIONS } from '@/lib/mock-data';
-import { DEMO } from '@/lib/demo';
+import { getDashboardViewModel } from '@/lib/view-models/dashboard';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -17,10 +14,8 @@ function formatDate(iso: string) {
   });
 }
 
-export default function DashboardPage() {
-  const recentSubmissions = MOCK_SUBMISSIONS.slice(0, 4);
-  const alertSubmission = MOCK_SUBMISSIONS.find((s) => s.id === DEMO.ALERT.submissionId);
-  const alertProject = alertSubmission ? MOCK_PROJECTS.find((p) => p.id === alertSubmission.projectId) : null;
+export default async function DashboardPage() {
+  const vm = await getDashboardViewModel();
 
   return (
     <AppShell>
@@ -43,10 +38,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatsCard label="Active Projects" value={MOCK_PROJECTS.length} icon={FolderKanban} accent="blue" />
-          <StatsCard label="Submissions This Month" value={DEMO.USER.submissionsUsed} icon={FileText} accent="default" trend={{ value: '+2 vs last month', positive: true }} />
-          <StatsCard label="Critical Issues Found" value={3} icon={AlertOctagon} accent="red" />
-          <StatsCard label="Reports Unlocked" value={DEMO.USER.unlocksUsed} icon={Unlock} accent="green" />
+          <StatsCard label="Active Projects" value={vm.stats.activeProjects} icon={FolderKanban} accent="blue" />
+          <StatsCard label="Submissions This Month" value={vm.stats.submissionsThisMonth} icon={FileText} accent="default" trend={{ value: '+2 vs last month', positive: true }} />
+          <StatsCard label="Critical Issues Found" value={vm.stats.criticalIssuesFound} icon={AlertOctagon} accent="red" />
+          <StatsCard label="Reports Unlocked" value={vm.stats.reportsUnlocked} icon={Unlock} accent="green" />
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -62,7 +57,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {MOCK_PROJECTS.length === 0 ? (
+            {vm.projects.length === 0 ? (
               <EmptyState
                 icon={FolderKanban}
                 title="No projects yet"
@@ -76,7 +71,7 @@ export default function DashboardPage() {
               />
             ) : (
               <div className="space-y-3">
-                {MOCK_PROJECTS.map((project) => (
+                {vm.projects.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
@@ -96,19 +91,18 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[hsl(222,20%,11%)]">
-              {recentSubmissions.length === 0 ? (
+              {vm.recentSubmissions.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">No submissions yet.</div>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {recentSubmissions.map((sub) => {
-                    const project = MOCK_PROJECTS.find((p) => p.id === sub.projectId);
+                  {vm.recentSubmissions.map((sub) => {
                     const hasReport = sub.status === 'report_ready' || sub.status === 'preview_ready';
                     return (
                       <li key={sub.id} className="px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {project?.name ?? 'Unknown Project'}
+                              {sub.projectName}
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{sub.billingPeriod}</p>
                           </div>
@@ -130,7 +124,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {alertSubmission && alertProject && (
+            {vm.demoAlert && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-900/20">
                 <div className="flex items-start gap-3">
                   <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
@@ -139,10 +133,10 @@ export default function DashboardPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">Attention Required</p>
                     <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-400">
-                      {DEMO.ALERT.message}
+                      {vm.demoAlert.message}
                     </p>
                     <Link
-                      href={`/submissions/${DEMO.ALERT.submissionId}/report`}
+                      href={`/submissions/${vm.demoAlert.submissionId}/report`}
                       className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-800 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
                     >
                       View Report
@@ -160,8 +154,8 @@ export default function DashboardPage() {
               </div>
               <div className="mt-3 space-y-2.5">
                 {[
-                  { label: 'Submissions', used: DEMO.USER.submissionsUsed, total: DEMO.USER.submissionsTotal, color: 'bg-blue-600' },
-                  { label: 'Unlocks', used: DEMO.USER.unlocksUsed, total: DEMO.USER.unlocksTotal, color: 'bg-green-600' },
+                  { label: 'Submissions', used: vm.usage.submissionsUsed, total: vm.usage.submissionsTotal, color: 'bg-blue-600' },
+                  { label: 'Unlocks', used: vm.usage.unlocksUsed, total: vm.usage.unlocksTotal, color: 'bg-green-600' },
                 ].map((item) => (
                   <div key={item.label}>
                     <div className="flex items-center justify-between text-xs">

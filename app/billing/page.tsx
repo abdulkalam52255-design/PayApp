@@ -1,9 +1,7 @@
-'use client';
-
 import { CreditCard, CircleCheck as CheckCircle2, ArrowRight, Download } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PricingCards } from '@/components/shared/PricingCards';
-import { MOCK_BILLING_TRANSACTIONS } from '@/lib/mock-data';
+import { getBillingViewModel } from '@/lib/view-models/billing';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -13,8 +11,9 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function BillingPage() {
-  const totalSpent = MOCK_BILLING_TRANSACTIONS.filter(t => t.type === 'charge').reduce((acc, t) => acc + t.amount, 0);
+export default async function BillingPage() {
+  const vm = await getBillingViewModel();
+  const totalSpent = vm.transactions.filter(t => t.type === 'charge').reduce((acc, t) => acc + t.amount, 0);
 
   return (
     <AppShell>
@@ -28,8 +27,8 @@ export default function BillingPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">Current Plan</p>
-                  <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">Pro Monthly</h2>
-                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">$99/month · Up to 10 report unlocks</p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">{vm.plan.name} {vm.plan.interval === 'month' ? 'Monthly' : 'Annual'}</h2>
+                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{vm.plan.price}/{vm.plan.interval} · Up to 10 report unlocks</p>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-green-200 dark:border-green-800/40 bg-green-50 dark:bg-green-900/20 px-2.5 py-1">
                   <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
@@ -39,10 +38,10 @@ export default function BillingPage() {
               <div className="mt-4">
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-slate-600 dark:text-slate-400">Unlocks used this month</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">7 of 10</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{vm.usage.unlocksUsed} of {vm.usage.unlocksTotal}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/40">
-                  <div className="h-full w-[70%] rounded-full bg-blue-600" />
+                  <div className="h-full rounded-full bg-blue-600" style={{ width: `${(vm.usage.unlocksUsed / vm.usage.unlocksTotal) * 100}%` }} />
                 </div>
                 <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Resets on May 1, 2025</p>
               </div>
@@ -74,7 +73,7 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                    {MOCK_BILLING_TRANSACTIONS.map((txn) => (
+                    {vm.transactions.map((txn) => (
                       <tr key={txn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(txn.date)}</td>
                         <td className="px-4 py-3 text-xs text-slate-700 dark:text-slate-300">{txn.description}</td>

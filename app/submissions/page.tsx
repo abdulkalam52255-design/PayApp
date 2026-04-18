@@ -1,17 +1,16 @@
-'use client';
-
 import Link from 'next/link';
 import { Plus, FileText, ArrowRight } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { MOCK_SUBMISSIONS, MOCK_PROJECTS } from '@/lib/mock-data';
+import { getSubmissionsViewModel } from '@/lib/view-models/submissions';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function SubmissionsPage() {
+export default async function SubmissionsPage() {
+  const vm = await getSubmissionsViewModel();
   return (
     <AppShell>
       <div className="px-4 py-6 sm:px-6 lg:px-8">
@@ -33,7 +32,7 @@ export default function SubmissionsPage() {
         </div>
 
         <div className="mt-6">
-          {MOCK_SUBMISSIONS.length === 0 ? (
+          {vm.submissions.length === 0 ? (
             <EmptyState
               icon={FileText}
               title="No submissions yet"
@@ -53,13 +52,12 @@ export default function SubmissionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {MOCK_SUBMISSIONS.map((sub) => {
-                    const project = MOCK_PROJECTS.find((p) => p.id === sub.projectId);
+                  {vm.submissions.map((sub) => {
                     return (
                       <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="px-4 py-3">
-                          <p className="text-xs font-medium text-slate-900 dark:text-slate-100">{project?.name ?? 'Unknown'}</p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">{project?.contractRef}</p>
+                          <p className="text-xs font-medium text-slate-900 dark:text-slate-100">{sub.projectName}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">{sub.projectId}</p>
                         </td>
                         <td className="hidden sm:table-cell px-4 py-3 font-medium text-slate-900 dark:text-slate-100 text-xs">{sub.billingPeriod}</td>
                         <td className="px-4 py-3">

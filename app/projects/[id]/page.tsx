@@ -1,13 +1,11 @@
-'use client';
-
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { Building2, Plus, OctagonAlert as AlertOctagon, TriangleAlert as AlertTriangle, GitMerge, TrendingDown, ArrowLeft } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { SubmissionTable } from '@/components/shared/SubmissionTable';
 import { StatsCard } from '@/components/shared/StatsCard';
-import { MOCK_PROJECTS, MOCK_SUBMISSIONS } from '@/lib/mock-data';
+import { getProjectViewModel } from '@/lib/view-models/projects';
+import { getProjectSubmissionsViewModel } from '@/lib/view-models/submissions';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-US', {
@@ -17,11 +15,13 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export default function ProjectDetailPage() {
-  const params = useParams();
-  const projectId = params.id as string;
-  const project = MOCK_PROJECTS.find((p) => p.id === projectId) ?? MOCK_PROJECTS[0];
-  const submissions = MOCK_SUBMISSIONS.filter((s) => s.projectId === project.id);
+export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
+  const projectId = params.id;
+  const projectVm = await getProjectViewModel(projectId);
+  const submissionsVm = await getProjectSubmissionsViewModel(projectId);
+  
+  const project = projectVm.project!;
+  const submissions = submissionsVm.submissions;
 
   return (
     <AppShell>
