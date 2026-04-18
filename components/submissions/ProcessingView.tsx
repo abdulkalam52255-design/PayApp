@@ -20,14 +20,38 @@ export function ProcessingView({ submission, isDemo }: { submission: Submission;
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
-    if (!isDemo) return;
-    if (stepIndex >= STATUS_PROGRESSION.length) return;
-    const timer = setTimeout(() => {
-      setCurrentStatus(STATUS_PROGRESSION[stepIndex]);
-      setStepIndex((i) => i + 1);
-    }, 1800);
-    return () => clearTimeout(timer);
-  }, [stepIndex, isDemo]);
+    if (isDemo) {
+      if (stepIndex >= STATUS_PROGRESSION.length) return;
+      const timer = setTimeout(() => {
+        setCurrentStatus(STATUS_PROGRESSION[stepIndex]);
+        setStepIndex((i) => i + 1);
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
+
+    // Live backend polling fallback since Realtime requires client-side keys
+    const isFinished = 
+      currentStatus === 'report_ready' || 
+      currentStatus === 'preview_ready' || 
+      currentStatus === 'failed' || 
+      currentStatus === 'unsupported';
+
+    if (isFinished) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/submissions/${submission.id}/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentStatus(data.status);
+        }
+      } catch (err) {
+        // Silent catch for polling
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [stepIndex, isDemo, currentStatus, submission.id]);
 
   const isFailed = currentStatus === 'failed' || currentStatus === 'unsupported';
   const isDone = currentStatus === 'report_ready' || currentStatus === 'preview_ready';
