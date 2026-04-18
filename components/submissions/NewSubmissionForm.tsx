@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check, Building2, Calendar, Upload, Tag, Play } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Building2, Calendar, Upload, Tag, Play, AlertCircle } from 'lucide-react';
 import { UploadDropzone } from '@/components/shared/UploadDropzone';
 import { FileRoleCard } from '@/components/shared/FileRoleCard';
 import type { DocumentRole, UploadedFile } from '@/lib/types';
 import { MOCK_PROJECTS } from '@/lib/mock-data';
+import { createLiveSubmission } from '@/app/actions/submissions';
 
 const STEPS = [
   { id: 1, label: 'Select Project', icon: Building2 },
@@ -73,22 +74,55 @@ export function NewSubmissionForm() {
   const [selectedProject, setSelectedProject] = useState<string>(MOCK_PROJECTS[0].id);
   const [billingPeriod, setBillingPeriod] = useState<string>('April 2025');
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleFilesAdded = (newFiles: File[]) => {
     const mapped = newFiles.map((f, i) => mockFileFromUpload(f, files.length + i));
     setFiles((prev) => [...prev, ...mapped]);
+    setRawFiles((prev) => [...prev, ...newFiles]);
   };
 
   const handleRoleChange = (fileId: string, role: DocumentRole) => {
     setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, correctedRole: role } : f));
   };
 
-  const handleRunPreflight = () => {
+  const handleRunPreflight = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      router.push('/submissions/sub-processing');
-    }, 1200);
+    setSubmitError(null);
+    
+    // Construct FormData natively to push file streams over HTTP safely
+    const formData = new FormData();
+    formData.append('projectId', selectedProject);
+    formData.append('billingPeriod', billingPeriod);
+    
+    files.forEach((fileMeta, index) => {
+      // Find the raw binary file that corresponds to this file record
+      const rawFile = rawFiles.find(f => f.name === fileMeta.filename);
+      if (rawFile) {
+        formData.append('files', rawFile);
+        // Append user-defined overrides or auto-classified detections
+        const finalRole = fileMeta.correctedRole || fileMeta.detectedRole;
+        formData.append(`role_${fileMeta.filename}`, finalRole);
+        formData.append(`confidence_${fileMeta.filename}`, fileMeta.roleConfidence.toString());
+      }
+    });
+
+    try {
+      const res = await createLiveSubmission(formData);
+      if (res.success && res.submissionId) {
+        // Enqueue succeeded. Send UI user perfectly to active live polling dashboard
+        router.push(`/submissions/${res.submissionId}`);
+      } else {
+        // Display precise error gracefully allowing user correction and re-clicks
+        setSubmitError(res.error || 'Unknown server error during submission generation.');
+        setIsSubmitting(false);
+      }
+    } catch (e: any) {
+      setSubmitError(e.message || 'Failure establishing connection to the server.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -229,11 +263,23 @@ export function NewSubmissionForm() {
             <div className="mt-4 rounded-lg border border-blue-200 dark:border-blue-800/40 bg-blue-50 dark:bg-blue-900/20 p-4">
               <p className="text-xs font-medium text-blue-800 dark:text-blue-300">What happens next</p>
               <p className="mt-1 text-xs text-blue-700 dark:text-blue-400">
-                Files will be uploaded, classified, parsed, and validated against 27+ deterministic
+                Files will be uploaded securely into storage containers, then classified, parsed, and validated against 27+ deterministic
                 rules. Processing typically completes in 1–3 minutes. You will see live progress on
                 the next screen.
               </p>
             </div>
+            
+            {submitError && (
+              <div className="mt-4 flex gap-3 rounded-lg border border-red-200 dark:border-red-800/40 bg-white dark:bg-slate-800 p-4 shadow-sm">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400" />
+                <div>
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300">Upload Failed</p>
+                  <p className="mt-1 text-xs text-red-700 dark:text-red-400">
+                    {submitError}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
