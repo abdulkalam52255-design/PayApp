@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, FileText, Wrench } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, FileSpreadsheet, Wrench, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Issue } from '@/lib/types';
 import { SeverityBadge } from './SeverityBadge';
@@ -24,31 +24,41 @@ interface IssueCardProps {
 export function IssueCard({ issue, onEvidenceClick, defaultExpanded }: IssueCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
 
+  const isCritical = issue.severity === 'critical';
+
   return (
     <div
       className={cn(
-        'rounded-lg border bg-white dark:bg-[hsl(222,20%,11%)] transition-shadow',
-        issue.severity === 'critical'
-          ? 'border-red-200 dark:border-red-800/50 shadow-sm'
+        'rounded-lg border bg-white transition-shadow dark:bg-[hsl(222,20%,11%)]',
+        isCritical
+          ? 'border-red-200 shadow-sm dark:border-red-800/50'
           : 'border-slate-200 dark:border-slate-700',
         expanded && 'shadow-md dark:shadow-slate-900/50'
       )}
     >
       <button
-        className="flex w-full items-start gap-3 p-4 text-left"
+        className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
       >
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <SeverityBadge severity={issue.severity} size="sm" />
-            <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
               {issue.ruleCode}
             </span>
-            <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
               {CATEGORY_LABELS[issue.category] ?? issue.category}
             </span>
           </div>
-          <p className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{issue.title}</p>
+          <p className="mt-2 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">
+            {issue.title}
+          </p>
+          {!expanded && (
+            <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              {issue.explanation}
+            </p>
+          )}
         </div>
         {expanded ? (
           <ChevronDown className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400 dark:text-slate-500" />
@@ -58,57 +68,79 @@ export function IssueCard({ issue, onEvidenceClick, defaultExpanded }: IssueCard
       </button>
 
       {expanded && (
-        <div className="border-t border-slate-100 dark:border-slate-700/60 px-4 pb-4 pt-3">
-          <div className="space-y-3">
+        <div className="border-t border-slate-100 px-4 pb-4 pt-3 dark:border-slate-700/60">
+          <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 Finding
               </p>
-              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{issue.explanation}</p>
+              <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{issue.explanation}</p>
             </div>
 
-            <div className="rounded-md border border-blue-100 dark:border-blue-800/40 bg-blue-50 dark:bg-blue-900/20 p-3">
+            <div className="rounded-md border border-blue-100 bg-blue-50 p-3 dark:border-blue-800/40 dark:bg-blue-900/20">
               <div className="flex gap-2">
                 <Wrench className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                 <div>
                   <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">Suggested Fix</p>
-                  <p className="mt-0.5 text-sm text-blue-800 dark:text-blue-300">{issue.suggestedFix}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-blue-800 dark:text-blue-300">{issue.suggestedFix}</p>
                 </div>
               </div>
             </div>
 
             {issue.evidence.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                   Evidence ({issue.evidence.length} reference{issue.evidence.length !== 1 ? 's' : ''})
                 </p>
-                <div className="mt-2 space-y-1.5">
-                  {issue.evidence.slice(0, 2).map((ev, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2"
-                    >
-                      <FileText className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 dark:text-slate-500" />
-                      <div className="min-w-0 text-xs">
-                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{ev.filename}</span>
-                        <span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span>
-                        <span className="text-slate-500 dark:text-slate-400">{ev.pageOrSheet}</span>
+                <div className="space-y-2">
+                  {issue.evidence.map((ev, i) => {
+                    const isSpreadsheet = ev.filename.endsWith('.xlsx') || ev.filename.endsWith('.csv');
+                    const FileIcon = isSpreadsheet ? FileSpreadsheet : FileText;
+                    return (
+                      <div
+                        key={i}
+                        className="rounded border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FileIcon className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 dark:text-slate-500" />
+                          <span className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">{ev.filename}</span>
+                          <span className="ml-auto flex-shrink-0 text-xs text-slate-400 dark:text-slate-500">{ev.pageOrSheet}</span>
+                        </div>
                         {ev.cellRef && (
-                          <>
-                            <span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span>
-                            <span className="font-mono text-slate-500 dark:text-slate-400">{ev.cellRef}</span>
-                          </>
+                          <p className="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">{ev.cellRef}</p>
+                        )}
+                        {(ev.extractedValue || ev.expectedValue) && (
+                          <div className="mt-2 space-y-0.5">
+                            {ev.extractedValue && (
+                              <p className="text-xs">
+                                <span className="text-slate-500 dark:text-slate-400">Found: </span>
+                                <span className="font-medium text-red-600 dark:text-red-400">{ev.extractedValue}</span>
+                              </p>
+                            )}
+                            {ev.expectedValue && (
+                              <p className="text-xs">
+                                <span className="text-slate-500 dark:text-slate-400">Expected: </span>
+                                <span className="font-medium text-green-700 dark:text-green-400">{ev.expectedValue}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {ev.snippet && (
+                          <div className="mt-2 rounded bg-slate-100 px-2.5 py-1.5 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            {ev.snippet}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {onEvidenceClick && (
                   <button
-                    className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+                    className="mt-2 flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                     onClick={() => onEvidenceClick(issue)}
                   >
-                    View full evidence →
+                    <ExternalLink className="h-3 w-3" />
+                    Open evidence panel
                   </button>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Shield, ArrowRight, CircleCheck as CheckCircle2, Upload, ScanLine, Zap, FileSearch, OctagonAlert as AlertOctagon, TrendingDown, GitMerge, FileX, HardDrive, GitPullRequest, FileText, Lock, ChevronRight } from 'lucide-react';
 import { PricingCards } from '@/components/shared/PricingCards';
+import { DEMO } from '@/lib/demo';
 
 function LandingNav() {
   return (
@@ -67,7 +68,7 @@ function Hero() {
             Upload a Package
           </Link>
           <Link
-            href="/submissions/sub-001/report"
+            href={`/submissions/${DEMO.SUBMISSION_UNLOCKED}/report`}
             className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
             <FileSearch className="h-4 w-4" />
@@ -296,7 +297,7 @@ function FinalCTA() {
             <Upload className="h-4 w-4" />
             Upload a Package — $39 to unlock
           </Link>
-          <Link href="/submissions/sub-001/report" className="flex items-center gap-2 rounded-lg border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:text-white">
+          <Link href={`/submissions/${DEMO.SUBMISSION_UNLOCKED}/report`} className="flex items-center gap-2 rounded-lg border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:text-white">
             View Sample Report
           </Link>
         </div>

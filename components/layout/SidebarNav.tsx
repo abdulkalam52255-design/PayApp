@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, FolderKanban, FileText, ChartBar as BarChart3, CreditCard, Settings, Shield, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DEMO } from '@/lib/demo';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,6 +21,9 @@ interface SidebarNavProps {
 
 export function SidebarNav({ onClose }: SidebarNavProps) {
   const pathname = usePathname();
+
+  const unlockPct = Math.round((DEMO.USER.unlocksUsed / DEMO.USER.unlocksTotal) * 100);
+  const isNearLimit = unlockPct >= 80;
 
   return (
     <aside className="flex h-full w-56 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-[hsl(222,20%,10%)]">
@@ -83,15 +87,32 @@ export function SidebarNav({ onClose }: SidebarNavProps) {
       <div className="border-t border-slate-200 p-3 dark:border-slate-800">
         <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-800/60">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Pro Plan</p>
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{DEMO.USER.plan} Plan</p>
             <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
               Active
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">7 of 10 unlocks used</p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {DEMO.USER.unlocksUsed} of {DEMO.USER.unlocksTotal} unlocks used
+          </p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-            <div className="h-full w-[70%] rounded-full bg-blue-600 transition-all" />
+            <div
+              className={cn(
+                'h-full rounded-full transition-all',
+                isNearLimit ? 'bg-amber-500' : 'bg-blue-600'
+              )}
+              style={{ width: `${unlockPct}%` }}
+            />
           </div>
+          {isNearLimit && (
+            <Link
+              href="/billing"
+              onClick={onClose}
+              className="mt-2 block text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+            >
+              Upgrade plan →
+            </Link>
+          )}
         </div>
       </div>
     </aside>
