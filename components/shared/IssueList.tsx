@@ -6,14 +6,18 @@ import { IssueCard } from './IssueCard';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { FiltersBar } from './FiltersBar';
 import { EmptyState } from './EmptyState';
+import { IssueSeverityGroup } from '@/components/report/IssueSeverityGroup';
 import { CircleCheck as CheckCircle2 } from 'lucide-react';
 
 interface IssueListProps {
   issues: Issue[];
   showFilters?: boolean;
+  grouped?: boolean;
 }
 
-export function IssueList({ issues, showFilters = true }: IssueListProps) {
+const SEVERITY_ORDER: IssueSeverity[] = ['critical', 'warning', 'info'];
+
+export function IssueList({ issues, showFilters = true, grouped = false }: IssueListProps) {
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
   const [severityFilter, setSeverityFilter] = useState<IssueSeverity | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<IssueCategory | 'all'>('all');
@@ -24,9 +28,12 @@ export function IssueList({ issues, showFilters = true }: IssueListProps) {
     return true;
   });
 
+  const isFiltered = severityFilter !== 'all' || categoryFilter !== 'all';
+  const showGrouped = grouped && !isFiltered;
+
   return (
-    <div className="flex gap-6">
-      <div className="flex-1 min-w-0 space-y-3">
+    <>
+      <div className="min-w-0 space-y-3">
         {showFilters && (
           <FiltersBar
             severityFilter={severityFilter}
@@ -44,14 +51,30 @@ export function IssueList({ issues, showFilters = true }: IssueListProps) {
             title="No issues match your filters"
             description="Try adjusting the severity or category filters to see more results."
           />
+        ) : showGrouped ? (
+          <div className="space-y-6">
+            {SEVERITY_ORDER.map((sev) => {
+              const group = filtered.filter((i) => i.severity === sev);
+              return (
+                <IssueSeverityGroup
+                  key={sev}
+                  severity={sev}
+                  issues={group}
+                  onEvidenceClick={setActiveIssue}
+                />
+              );
+            })}
+          </div>
         ) : (
-          filtered.map((issue) => (
-            <IssueCard
-              key={issue.id}
-              issue={issue}
-              onEvidenceClick={setActiveIssue}
-            />
-          ))
+          <div className="space-y-2.5">
+            {filtered.map((issue) => (
+              <IssueCard
+                key={issue.id}
+                issue={issue}
+                onEvidenceClick={setActiveIssue}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -61,6 +84,6 @@ export function IssueList({ issues, showFilters = true }: IssueListProps) {
           onClose={() => setActiveIssue(null)}
         />
       )}
-    </div>
+    </>
   );
 }
